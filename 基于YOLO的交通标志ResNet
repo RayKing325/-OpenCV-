@@ -1,0 +1,40 @@
+# 模型训练
+from ultralytics import YOLO
+
+# 加载预训练模型（集成ResNet残差块）
+model = YOLO('yolov8n.pt')  # YOLOv8 nano版本
+
+# 训练配置
+results = model.train(
+    data='traffic_sign.yaml',  # 数据集配置文件
+    epochs=300,
+    imgsz=640,
+    batch=16,
+    augment=True,  # 启用数据增强
+    patience=50,   # 早停策略
+    lr0=0.01,      # 初始学习率
+    lrf=0.1        # 最终学习率因子
+)
+
+# 实时检测与UI界面实现
+import cv2
+from PyQt5.QtWidgets import QApplication, QLabel
+
+class Detector:
+    def __init__(self):
+        self.model = YOLO('best.pt')  # 加载训练好的模型
+
+    def detect(self, frame):
+        results = self.model(frame)
+        annotated_frame = results.plot  # 可视化检测结果
+        return annotated_frame
+
+# 示例：摄像头实时检测
+cap = cv2.VideoCapture(0)
+while cap.isOpened:
+    ret, frame = cap.read
+    if not ret: break
+    output = Detector.detect(frame)
+    cv2.imshow('Traffic Sign Detection', output)
+    if cv2.waitKey(1) == ord('q'): break
+cap.release
