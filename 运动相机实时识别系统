@@ -1,0 +1,64 @@
+"""graph TD
+    A[运动相机视频流] --> B(YOLOv8人体检测)
+    B --> C{检测到人体?}
+    C -->|是| D[MediaPipe姿态估计]
+    D --> E[骨架关键点序列]
+    E --> F[LSTM动作分类]
+    F --> G[实时结果渲染]
+    C -->|否| G"""
+# 1. YOLOv8实时人体检测
+from ultralytics import YOLO
+import cv2
+
+# 初始化模型
+model = YOLO('yolov8n.pt')  # 使用纳米级模型保证速度
+
+cap = cv2.VideoCapture(0)  # 替换为运动相机流地址
+
+while True:
+    ret, frame = cap.read
+    results = model(frame, classes=, conf=0.5)  # 仅检测人
+
+    # 绘制检测框
+    annotated_frame = results.plot
+    cv2.imshow('YOLO Detection', annotated_frame)
+
+    if cv2.waitKey(1) == ord('q'):
+        break
+
+cap.release
+cv2.destroyAllWindows
+
+# 2. MediaPipe姿态估计集成
+import mediapipe as mp
+
+mp_pose = mp.solutions.pose
+pose = mp_pose.Pose(min_detection_confidence=0.5)
+
+def estimate_pose(image):
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    results = pose.process(image_rgb)
+    return results.pose_landmarks
+
+# 3. 动作分类器设计（以跳跃检测为例）
+import numpy as np
+
+
+class ActionClassifier:
+    def __init__(self):
+        self.prev_hip_y = None
+
+    def detect_jump(self, landmarks):
+        hip_y = landmarks.y  # 髋部关键点坐标
+        if self.prev_hip_y is not None:
+            displacement = abs(hip_y - self.prev_hip_y)
+            if displacement > 0.15:  # 垂直位移阈值
+                return True
+        self.prev_hip_y = hip_y
+        return False
+# 五、扩展功能建议
+# 摔倒检测算法def fall_detection(landmarks):
+def fall_detection(landmarks):
+    head_y = landmarks.y
+    hip_y = landmarks.y
+    return (head_y - hip_y) < 0.2  # 头部低于髋部判定摔倒
